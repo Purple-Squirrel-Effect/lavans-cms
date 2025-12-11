@@ -53,6 +53,7 @@
 
 	let optionSaving = $state(false);
 	let valueSaving = $state(false);
+	let selectedStep = $state<OptionsStepOptions>(OptionsStepOptions.article_choice);
 
 	async function loadData(id: string) {
 		loading = true;
@@ -129,7 +130,7 @@
 
 	// async function saveOptionValue(value: OptionValuesResponse) { ... } // Removed as now handled by modal
 
-	function openOptionModal(option: OptionsResponse | null = null) {
+	function openOptionModal(option: OptionsResponse | null = null, step?: OptionsStepOptions) {
 		editingOption = option;
 		if (option) {
 			optionForm = {
@@ -143,7 +144,7 @@
 			optionForm = {
 				name: '',
 				description: '',
-				step: OptionsStepOptions.article_choice,
+				step: step || selectedStep,
 				question_type: OptionsQuestionTypeOptions['Single Choice'],
 				is_active: true
 			};
@@ -180,9 +181,9 @@
 	function openValueModal(optionId: string, value: OptionValuesResponse | null = null) {
 		currentOptionIdForValue = optionId;
 		editingValue = value;
-		
+
 		const currentOption = options.find((o) => o.id === optionId);
-		const isColorOrMaterialChoice = 
+		const isColorOrMaterialChoice =
 			currentOption?.question_type === OptionsQuestionTypeOptions['Color Choice'] ||
 			currentOption?.question_type === OptionsQuestionTypeOptions['Material Choice'];
 
@@ -192,8 +193,8 @@
 				sku_part: value.sku_part || '',
 				price_adjustment: value.price_adjustment || 0,
 				is_active: value.is_active || false,
-				submodel: isColorOrMaterialChoice ? '' : (value.submodel || ''),
-				material_or_color: isColorOrMaterialChoice ? (value.material_or_color || '') : '',
+				submodel: isColorOrMaterialChoice ? '' : value.submodel || '',
+				material_or_color: isColorOrMaterialChoice ? value.material_or_color || '' : '',
 				description: value.description || ''
 			};
 		} else {
@@ -215,7 +216,7 @@
 		valueSaving = true;
 
 		const currentOption = options.find((o) => o.id === currentOptionIdForValue);
-		const isColorOrMaterialChoice = 
+		const isColorOrMaterialChoice =
 			currentOption?.question_type === OptionsQuestionTypeOptions['Color Choice'] ||
 			currentOption?.question_type === OptionsQuestionTypeOptions['Material Choice'];
 
@@ -253,7 +254,7 @@
 					option: currentOptionIdForValue,
 					basemodel_id: model?.id
 				};
-				
+
 				const newValue = await pb.collection('option_values').create(createData);
 
 				// Update local state
@@ -451,7 +452,7 @@
 			<div class="flex items-center justify-between">
 				<h2 class="text-xl font-bold tracking-tight text-slate-900">Options</h2>
 				<button
-					onclick={() => openOptionModal()}
+					onclick={() => openOptionModal(null, selectedStep)}
 					class="inline-flex h-8 items-center justify-center rounded-md bg-slate-900 px-3 text-xs font-medium text-white shadow transition-colors hover:bg-slate-900/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-900 cursor-pointer"
 				>
 					Add Option
@@ -466,126 +467,267 @@
 					</p>
 				</div>
 			{:else}
-				{#each options as option}
-					<div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-						<div
-							class="border-b border-slate-200 bg-slate-50/50 px-6 py-4 flex items-center justify-between"
-						>
-							<div>
-								<h3 class="font-semibold text-slate-900">{option.name}</h3>
-								<div class="text-xs text-slate-500 mt-1 flex gap-2">
-									<span
-										class="inline-flex items-center rounded-full border border-slate-200 bg-white px-2 py-0.5 text-xs font-medium text-slate-900"
-									>
-										{option.step}
-									</span>
-									<span
-										class="inline-flex items-center rounded-full border border-slate-200 bg-white px-2 py-0.5 text-xs font-medium text-slate-900"
-									>
-										{option.question_type}
-									</span>
-									{#if !option.is_active}
-										<span
-											class="inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700"
-										>
-											Inactive
-										</span>
-									{/if}
-								</div>
-								{#if option.description}
-									<div class="text-sm text-slate-500 mt-2">{@html option.description}</div>
-								{/if}
-							</div>
-							<div class="flex items-center gap-2">
-								<button
-									onclick={() => openOptionModal(option)}
-									class="inline-flex h-8 items-center justify-center rounded-md border border-slate-200 bg-white px-3 text-xs font-medium transition-colors hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
-								>
-									Edit
-								</button>
-								<button
-									onclick={() => handleDeleteOption(option)}
-									class="inline-flex h-8 items-center justify-center rounded-md border border-red-200 bg-white px-3 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 hover:text-red-700 cursor-pointer"
-								>
-									Delete
-								</button>
-							</div>
-						</div>
+				{@const optionsByStep = {
+					[OptionsStepOptions.article_choice]: options.filter(
+						(o) => o.step === OptionsStepOptions.article_choice
+					),
+					[OptionsStepOptions.material_color_choice]: options.filter(
+						(o) => o.step === OptionsStepOptions.material_color_choice
+					),
+					[OptionsStepOptions.add_ons]: options.filter(
+						(o) => o.step === OptionsStepOptions.add_ons
+					),
+					[OptionsStepOptions.personalisation]: options.filter(
+						(o) => o.step === OptionsStepOptions.personalisation
+					)
+				}}
+				{@const currentStepOptions = optionsByStep[selectedStep] || []}
 
-						<div class="p-0">
-							<table class="w-full caption-bottom text-sm">
-								<thead class="[&_tr]:border-b bg-slate-50/20">
-									<tr class="border-b border-slate-200">
-										<th class="h-10 px-4 text-left align-middle font-medium text-slate-500">Name</th
-										>
-										<th class="h-10 px-4 text-left align-middle font-medium text-slate-500 w-32"
-											>SKU Part</th
-										>
-										<th class="h-10 px-4 text-left align-middle font-medium text-slate-500 w-32"
-											>Price Adj.</th
-										>
-										<th class="h-10 px-4 text-center align-middle font-medium text-slate-500 w-24"
-											>Active</th
-										>
-										<th class="h-10 px-4 text-right align-middle font-medium text-slate-500 w-24"
-											>Action</th
-										>
-									</tr>
-								</thead>
-								<tbody>
-									{#if optionValues[option.id]}
-										{#each optionValues[option.id] as val}
-											<tr class="border-b border-slate-200 last:border-0 hover:bg-slate-50/50">
-												<td class="p-4 align-middle font-medium">{val.name}</td>
-												<td class="p-4 align-middle">{val.sku_part}</td>
-												<td class="p-4 align-middle">{val.price_adjustment}</td>
-												<td class="p-4 align-middle text-center">
-													{#if val.is_active}
-														<span class="inline-flex h-2 w-2 rounded-full bg-green-500"></span>
-													{:else}
-														<span class="inline-flex h-2 w-2 rounded-full bg-slate-300"></span>
-													{/if}
-												</td>
-												<td class="p-4 align-middle text-right">
-													<div class="flex items-center justify-end gap-2">
-														<button
-															onclick={() => openValueModal(option.id, val)}
-															class="inline-flex h-8 items-center justify-center rounded-md border border-slate-200 bg-white px-3 text-xs font-medium transition-colors hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
-														>
-															Edit
-														</button>
-														<button
-															onclick={() => handleDeleteOptionValue(val, option.id)}
-															class="inline-flex h-8 items-center justify-center rounded-md border border-red-200 bg-white px-3 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 hover:text-red-700 cursor-pointer"
-														>
-															Delete
-														</button>
-													</div>
-												</td>
-											</tr>
-										{/each}
-									{:else}
-										<tr>
-											<td colspan="5" class="p-4 text-center text-slate-500">No values found</td>
-										</tr>
-									{/if}
-
-									<!-- Add Value Row -->
-									<tr class="border-t border-slate-200 bg-slate-50/30">
-										<td colspan="5" class="p-2 text-center">
-											<button
-												onclick={() => openValueModal(option.id)}
-												class="inline-flex h-8 w-full items-center justify-center rounded-md border border-dashed border-slate-300 bg-transparent text-xs font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-900 cursor-pointer"
+				<!-- Tabs -->
+				<div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+					<div class="border-b border-slate-200 bg-slate-50/50">
+						<nav class="flex" aria-label="Tabs">
+							{#each Object.values(OptionsStepOptions) as step}
+								<button
+									onclick={() => (selectedStep = step)}
+									class="relative flex-1 px-6 py-4 text-sm font-medium transition-all duration-200 cursor-pointer {selectedStep ===
+									step
+										? 'text-slate-900 bg-white'
+										: 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/50'}"
+								>
+									<div class="flex items-center justify-center gap-2">
+										{#if step === OptionsStepOptions.article_choice}
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												width="16"
+												height="16"
+												viewBox="0 0 24 24"
+												fill="none"
+												stroke="currentColor"
+												stroke-width="2"
+												stroke-linecap="round"
+												stroke-linejoin="round"
 											>
-												+ Add Value
-											</button>
-										</td>
-									</tr>
-								</tbody>
-							</table>
-						</div>
+												<path
+													d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"
+												/>
+												<polyline points="14 2 14 8 20 8" />
+												<line x1="16" x2="8" y1="13" y2="13" />
+												<line x1="16" x2="8" y1="17" y2="17" />
+												<polyline points="10 9 9 9 8 9" />
+											</svg>
+										{:else if step === OptionsStepOptions.material_color_choice}
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												width="16"
+												height="16"
+												viewBox="0 0 24 24"
+												fill="none"
+												stroke="currentColor"
+												stroke-width="2"
+												stroke-linecap="round"
+												stroke-linejoin="round"
+											>
+												<circle cx="13.5" cy="6.5" r=".5" fill="currentColor" />
+												<circle cx="17.5" cy="10.5" r=".5" fill="currentColor" />
+												<circle cx="8.5" cy="7.5" r=".5" fill="currentColor" />
+												<circle cx="6.5" cy="12.5" r=".5" fill="currentColor" />
+												<path
+													d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.514-.6-.514-.9 0-.7.7-1.287 1.5-1.287s1.5.587 1.5 1.287c0 .3-.223.611-.513.9-.258.29-.438.688-.438 1.125 0 .942.722 1.688 1.648 1.688 5.5 0 10-4.5 10-10S17.5 2 12 2z"
+												/>
+											</svg>
+										{:else if step === OptionsStepOptions.add_ons}
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												width="16"
+												height="16"
+												viewBox="0 0 24 24"
+												fill="none"
+												stroke="currentColor"
+												stroke-width="2"
+												stroke-linecap="round"
+												stroke-linejoin="round"
+											>
+												<path d="M5 12h14" />
+												<path d="M12 5v14" />
+											</svg>
+										{:else if step === OptionsStepOptions.personalisation}
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												width="16"
+												height="16"
+												viewBox="0 0 24 24"
+												fill="none"
+												stroke="currentColor"
+												stroke-width="2"
+												stroke-linecap="round"
+												stroke-linejoin="round"
+											>
+												<path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+												<circle cx="12" cy="7" r="4" />
+											</svg>
+										{/if}
+										<span>{step.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}</span>
+										{#if optionsByStep[step]?.length > 0}
+											<span
+												class="inline-flex items-center justify-center rounded-full px-2 py-0.5 text-xs font-semibold min-w-[1.5rem] {selectedStep ===
+												step
+													? 'bg-slate-900 text-white'
+													: 'bg-slate-200 text-slate-700'}"
+											>
+												{optionsByStep[step].length}
+											</span>
+										{/if}
+									</div>
+									{#if selectedStep === step}
+										<div class="absolute bottom-0 left-0 right-0 h-0.5 bg-slate-900"></div>
+									{/if}
+								</button>
+							{/each}
+						</nav>
 					</div>
-				{/each}
+
+					<!-- Tab Content -->
+					<div class="p-6">
+						{#if currentStepOptions.length === 0}
+							<div class="text-center py-12">
+								<h3 class="text-lg font-medium text-slate-900">No Options in This Step</h3>
+								<p class="mt-2 text-sm text-slate-500">
+									There are no options for this step. Click "Add Option" to create one.
+								</p>
+							</div>
+						{:else}
+							<div class="space-y-4">
+								{#each currentStepOptions as option}
+									<div class="rounded-lg border border-slate-200 bg-white overflow-hidden">
+										<div
+											class="border-b border-slate-200 bg-slate-50/50 px-6 py-4 flex items-center justify-between"
+										>
+											<div>
+												<h3 class="font-semibold text-slate-900">{option.name}</h3>
+												<div class="text-xs text-slate-500 mt-1 flex gap-2">
+													<span
+														class="inline-flex items-center rounded-full border border-slate-200 bg-white px-2 py-0.5 text-xs font-medium text-slate-900"
+													>
+														{option.question_type}
+													</span>
+													{#if !option.is_active}
+														<span
+															class="inline-flex items-center rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-medium text-red-700"
+														>
+															Inactive
+														</span>
+													{/if}
+												</div>
+												{#if option.description}
+													<div class="text-sm text-slate-500 mt-2">{@html option.description}</div>
+												{/if}
+											</div>
+											<div class="flex items-center gap-2">
+												<button
+													onclick={() => openOptionModal(option)}
+													class="inline-flex h-8 items-center justify-center rounded-md border border-slate-200 bg-white px-3 text-xs font-medium transition-colors hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
+												>
+													Edit
+												</button>
+												<button
+													onclick={() => handleDeleteOption(option)}
+													class="inline-flex h-8 items-center justify-center rounded-md border border-red-200 bg-white px-3 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 hover:text-red-700 cursor-pointer"
+												>
+													Delete
+												</button>
+											</div>
+										</div>
+
+										<div class="p-0">
+											<table class="w-full caption-bottom text-sm">
+												<thead class="[&_tr]:border-b bg-slate-50/20">
+													<tr class="border-b border-slate-200">
+														<th class="h-10 px-4 text-left align-middle font-medium text-slate-500"
+															>Name</th
+														>
+														<th
+															class="h-10 px-4 text-left align-middle font-medium text-slate-500 w-32"
+															>SKU Part</th
+														>
+														<th
+															class="h-10 px-4 text-left align-middle font-medium text-slate-500 w-32"
+															>Price Adj.</th
+														>
+														<th
+															class="h-10 px-4 text-center align-middle font-medium text-slate-500 w-24"
+															>Active</th
+														>
+														<th
+															class="h-10 px-4 text-right align-middle font-medium text-slate-500 w-24"
+															>Action</th
+														>
+													</tr>
+												</thead>
+												<tbody>
+													{#if optionValues[option.id]}
+														{#each optionValues[option.id] as val}
+															<tr
+																class="border-b border-slate-200 last:border-0 hover:bg-slate-50/50"
+															>
+																<td class="p-4 align-middle font-medium">{val.name}</td>
+																<td class="p-4 align-middle">{val.sku_part}</td>
+																<td class="p-4 align-middle">{val.price_adjustment}</td>
+																<td class="p-4 align-middle text-center">
+																	{#if val.is_active}
+																		<span class="inline-flex h-2 w-2 rounded-full bg-green-500"
+																		></span>
+																	{:else}
+																		<span class="inline-flex h-2 w-2 rounded-full bg-slate-300"
+																		></span>
+																	{/if}
+																</td>
+																<td class="p-4 align-middle text-right">
+																	<div class="flex items-center justify-end gap-2">
+																		<button
+																			onclick={() => openValueModal(option.id, val)}
+																			class="inline-flex h-8 items-center justify-center rounded-md border border-slate-200 bg-white px-3 text-xs font-medium transition-colors hover:bg-slate-100 hover:text-slate-900 cursor-pointer"
+																		>
+																			Edit
+																		</button>
+																		<button
+																			onclick={() => handleDeleteOptionValue(val, option.id)}
+																			class="inline-flex h-8 items-center justify-center rounded-md border border-red-200 bg-white px-3 text-xs font-medium text-red-600 transition-colors hover:bg-red-50 hover:text-red-700 cursor-pointer"
+																		>
+																			Delete
+																		</button>
+																	</div>
+																</td>
+															</tr>
+														{/each}
+													{:else}
+														<tr>
+															<td colspan="5" class="p-4 text-center text-slate-500"
+																>No values found</td
+															>
+														</tr>
+													{/if}
+
+													<!-- Add Value Row -->
+													<tr class="border-t border-slate-200 bg-slate-50/30">
+														<td colspan="5" class="p-2 text-center">
+															<button
+																onclick={() => openValueModal(option.id)}
+																class="inline-flex h-8 w-full items-center justify-center rounded-md border border-dashed border-slate-300 bg-transparent text-xs font-medium text-slate-500 hover:bg-slate-50 hover:text-slate-900 cursor-pointer"
+															>
+																+ Add Value
+															</button>
+														</td>
+													</tr>
+												</tbody>
+											</table>
+										</div>
+									</div>
+								{/each}
+							</div>
+						{/if}
+					</div>
+				</div>
 			{/if}
 		</div>
 	{/if}
@@ -627,36 +769,24 @@
 					></textarea>
 				</div>
 
-				<div class="grid grid-cols-2 gap-4">
-					<div class="space-y-2">
-						<label for="opt_step" class="text-sm font-medium leading-none text-slate-900"
-							>Step</label
-						>
-						<select
-							id="opt_step"
-							bind:value={optionForm.step}
-							class="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-900"
-						>
-							{#each Object.values(OptionsStepOptions) as step}
-								<option value={step}>{step}</option>
-							{/each}
-						</select>
+				{#if editingOption}
+					<div class="rounded-md bg-slate-50 px-3 py-2 text-sm text-slate-600">
+						<span class="font-medium">Step:</span>
+						{optionForm.step.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase())}
 					</div>
+				{/if}
 
-					<div class="space-y-2">
-						<label for="opt_type" class="text-sm font-medium leading-none text-slate-900"
-							>Type</label
-						>
-						<select
-							id="opt_type"
-							bind:value={optionForm.question_type}
-							class="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-900"
-						>
-							{#each Object.values(OptionsQuestionTypeOptions) as type}
-								<option value={type}>{type}</option>
-							{/each}
-						</select>
-					</div>
+				<div class="space-y-2">
+					<label for="opt_type" class="text-sm font-medium leading-none text-slate-900">Type</label>
+					<select
+						id="opt_type"
+						bind:value={optionForm.question_type}
+						class="flex h-9 w-full rounded-md border border-slate-200 bg-transparent px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-slate-900"
+					>
+						{#each Object.values(OptionsQuestionTypeOptions) as type}
+							<option value={type}>{type}</option>
+						{/each}
+					</select>
 				</div>
 
 				<div class="space-y-2 pt-2">
@@ -746,14 +876,18 @@
 
 				{#if currentOptionIdForValue}
 					{@const currentOption = options.find((o) => o.id === currentOptionIdForValue)}
-					{@const isColorOrMaterialChoice = 
+					{@const isColorOrMaterialChoice =
 						currentOption?.question_type === OptionsQuestionTypeOptions['Color Choice'] ||
 						currentOption?.question_type === OptionsQuestionTypeOptions['Material Choice']}
-					
+
 					{#if isColorOrMaterialChoice}
 						<div class="space-y-2">
-							<label for="val_material_or_color" class="text-sm font-medium leading-none text-slate-900"
-								>{currentOption?.question_type === OptionsQuestionTypeOptions['Color Choice'] ? 'Color' : 'Material'}</label
+							<label
+								for="val_material_or_color"
+								class="text-sm font-medium leading-none text-slate-900"
+								>{currentOption?.question_type === OptionsQuestionTypeOptions['Color Choice']
+									? 'Color'
+									: 'Material'}</label
 							>
 							<select
 								id="val_material_or_color"

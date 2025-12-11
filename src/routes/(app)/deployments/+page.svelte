@@ -10,7 +10,7 @@
 		try {
 			// Fetch deployments (mocked for now as collection might not exist)
 			// deployments = await pb.collection('deployments').getFullList({ sort: '-created' });
-            deployments = [];
+			deployments = [];
 
 			// Fetch basemodels for reference
 			basemodels = await pb.collection('basemodels').getFullList();
@@ -26,7 +26,7 @@
 		try {
 			// TODO: Implement actual deployment logic
 			// await pb.collection('deployments').create({ ... })
-			
+
 			const newDeployment = {
 				id: `dep-${Date.now()}`,
 				environment: env,
@@ -59,8 +59,11 @@
 </script>
 
 <div class="space-y-6">
-	<div class="flex items-center justify-between">
-		<h1 class="text-2xl font-bold tracking-tight text-slate-900">Deployments</h1>
+	<div>
+		<h1 class="text-3xl font-bold tracking-tight text-slate-900">Deployments</h1>
+		<p class="mt-2 text-sm text-slate-600">
+			Deploy configurations to staging and production environments.
+		</p>
 	</div>
 
 	<div class="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -89,26 +92,58 @@
 			<table class="w-full caption-bottom text-sm">
 				<thead class="[&_tr]:border-b bg-slate-50/20">
 					<tr class="border-b border-slate-200">
-						<th class="h-10 px-6 text-left align-middle font-medium text-slate-500">Environment</th>
-						<th class="h-10 px-6 text-left align-middle font-medium text-slate-500">Status</th>
-						<th class="h-10 px-6 text-left align-middle font-medium text-slate-500">Date</th>
-						<th class="h-10 px-6 text-right align-middle font-medium text-slate-500">Action</th>
+						<th class="h-12 px-6 text-left align-middle font-semibold text-slate-700"
+							>Environment</th
+						>
+						<th class="h-12 px-6 text-left align-middle font-semibold text-slate-700">Status</th>
+						<th class="h-12 px-6 text-left align-middle font-semibold text-slate-700">Date</th>
+						<th class="h-12 px-6 text-right align-middle font-semibold text-slate-700">Action</th>
 					</tr>
 				</thead>
 				<tbody>
 					{#if deployments.length === 0}
 						<tr>
-							<td colspan="4" class="p-6 text-center text-slate-500">No deployments found</td>
+							<td colspan="4" class="h-32 text-center align-middle">
+								<div class="flex flex-col items-center justify-center gap-2 text-slate-500">
+									<svg
+										xmlns="http://www.w3.org/2000/svg"
+										width="48"
+										height="48"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="1.5"
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										class="text-slate-300"
+									>
+										<path
+											d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"
+										/>
+										<path
+											d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"
+										/>
+										<path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0" />
+										<path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5" />
+									</svg>
+									<p class="text-sm font-medium">No deployments yet</p>
+									<p class="text-xs">Deploy to staging or production to get started</p>
+								</div>
+							</td>
 						</tr>
 					{:else}
 						{#each deployments as deploy}
 							<tr class="border-b border-slate-200 last:border-0 hover:bg-slate-50/50">
 								<td class="p-6 align-middle font-medium capitalize">{deploy.environment}</td>
 								<td class="p-6 align-middle">
-									<span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium 
-										{deploy.status === 'success' ? 'bg-green-100 text-green-800' : 
-										 deploy.status === 'failed' ? 'bg-red-100 text-red-800' : 
-										 'bg-slate-100 text-slate-800'}">
+									<span
+										class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium
+										{deploy.status === 'success'
+											? 'bg-green-100 text-green-800'
+											: deploy.status === 'failed'
+												? 'bg-red-100 text-red-800'
+												: 'bg-slate-100 text-slate-800'}"
+									>
 										{deploy.status}
 									</span>
 								</td>
@@ -131,4 +166,3 @@
 		</div>
 	</div>
 </div>
-
