@@ -25,9 +25,7 @@
 <div class="flex min-h-screen w-full bg-slate-50">
 	<!-- Sidebar -->
 	<aside class="hidden w-64 flex-col border-r border-slate-200 bg-white md:flex shadow-sm">
-		<div
-			class="flex h-14 items-center border-b border-slate-200 px-6 bg-gradient-to-r from-slate-900 to-slate-700"
-		>
+		<div class="flex h-14 items-center border-b border-slate-200 px-6 bg-black">
 			<span class="text-lg font-bold text-white">Lavans CMS</span>
 		</div>
 		<div class="flex-1 overflow-y-auto py-4">
